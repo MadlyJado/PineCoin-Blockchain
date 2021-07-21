@@ -8,6 +8,8 @@ from sqlhelpers import *
 from forms import *
 from functools import wraps
 
+import time
+
 app = Flask(__name__)
 
 app.config['MYSQL_HOST'] = 'localhost'
@@ -61,7 +63,10 @@ def register():
 @app.route("/dashboard")
 @is_logged_in
 def dashboard():
-    return render_template("dashboard.html", session=session)
+    blockchain = get_blockchain().chain
+    ct = time.strftime("%I:%M %p")
+    balance = get_balance(session.get('username'))
+    return render_template("dashboard.html", session=session, balance=balance,ct=ct, blockchain=blockchain, page='dashboard')
 
 @app.route("/login", methods=['GET', 'POST'])
 def login():
@@ -89,6 +94,39 @@ def login():
     return render_template("login.html")
 
 @app.route("/transaction", methods = ['GET', 'POST'])
+@is_logged_in
+def transaction():
+    form = SendMoneyForm(request.form)
+    balance = get_balance(session.get('username'))
+
+    if request.method == 'POST':
+        try:
+            send_money(session.get('username'), form.username.data, form.amount.data)
+            flash("Money Sent!", 'success')
+        except Exception as e:
+            flash(str(e), 'danger')
+        
+        return redirect(url_for('transaction'))
+
+    return render_template("transaction.html", balance=balance, form=form, page='transaction')
+
+@app.route("/buy", methods = ['GET', 'POST'])
+@is_logged_in
+def buy():
+    form = BuyForm(request.form)
+    balance = get_balance(session.get('username'))
+
+    if request.method == 'POST':
+        try:
+            send_money("BANK", session.get('username'), form.amount.data, page='buy')
+            flash("Purchase Successful!", 'success')
+        except Exception as e:
+            flash(str(e), 'danger')
+        
+        return redirect(url_for('dashboard'))
+    
+    return render_template("buy.html", balance=balance, form=form)
+
 
 @app.route("/logout")
 @is_logged_in
@@ -99,7 +137,6 @@ def logout():
 
 @app.route("/")
 def index():
-    send_money("john_doe", "MadlyJado", 50)
     return render_template('index.html')
 
 if __name__ == '__main__':
