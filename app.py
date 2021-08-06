@@ -118,14 +118,14 @@ def buy():
 
     if request.method == 'POST':
         try:
-            send_money("BANK", session.get('username'), form.amount.data, page='buy')
+            send_money("BANK", session.get('username'), form.amount.data)
             flash("Purchase Successful!", 'success')
         except Exception as e:
             flash(str(e), 'danger')
         
         return redirect(url_for('dashboard'))
     
-    return render_template("buy.html", balance=balance, form=form)
+    return render_template("buy.html", balance=balance, form=form, page='buy')
 
 
 @app.route("/logout")
